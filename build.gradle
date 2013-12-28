@@ -60,3 +60,12 @@ let g:syntastic_java_javac_config_file = '.syntastic-classpath'
 
   println """Created .vimrc.local... don't forget to source this in your vim config"""
 }
+
+task getData << {
+    def f = new File('data/whitehouse.csv')
+    if(!f.exists()) {
+        new URL('https://explore.data.gov/api/views/644b-gaut/rows.csv?accessType=DOWNLOAD').withInputStream{
+            i -> f.withOutputStream{ it << i }
+        }
+    }
+}
