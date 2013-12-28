@@ -1,0 +1,62 @@
+/*
+ * Whitehouse analytics
+ */
+
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'eclipse'
+
+apply from: "./providedCompile.gradle"
+
+archivesBaseName = 'whitehouse'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    mavenRepo name: 'conjars', url: 'http://conjars.org/repo/'
+}
+
+ext.cascadingVersion = '2.5.1'
+ext.hadoopVersion = '1.2.1'
+
+dependencies {
+    compile( group: 'cascading', name: 'cascading-core', version: cascadingVersion )
+    compile( group: 'cascading', name: 'cascading-local', version: cascadingVersion )
+    compile( group: 'cascading', name: 'cascading-hadoop', version: cascadingVersion )
+
+    providedCompile( group: 'org.apache.hadoop', name: 'hadoop-core', version: hadoopVersion )
+}
+
+jar {
+    description = "Assembles a hadoop ready jar file"
+    doFirst {
+        into( 'lib' ) {
+            from configurations.compile
+        }
+    }
+
+    manifest {
+        attributes( "Main-Class": "whitehouse/Main" )
+    }
+}
+
+task vimFiles << {
+  // create syntastic classpath files
+  def jars = new HashSet<String>()
+  getChildProjects().each { proj ->
+    proj.value.configurations.each { conf ->
+      conf.each { jar ->
+        jars.add(jar)
+      }
+    }
+  }
+  new File(rootProject.projectDir.absolutePath + "/.syntastic-classpath").text = jars.collect().join("\n")
+
+  // create .vimrc.local
+  new File(rootProject.projectDir.absolutePath + "/.vimrc.local").text = """
+let g:syntastic_java_javac_config_file_enabled = 1
+let g:syntastic_java_javac_config_file = '.syntastic-classpath'
+"""
+
+  println """Created .vimrc.local... don't forget to source this in your vim config"""
+}
