@@ -25,6 +25,15 @@ import cascading.tap.Tap;
 import cascading.tap.hadoop.Hfs;
 import cascading.tuple.Fields;
 
+/**
+ * Main class runs various analytics on whitehouse visitor logs.
+ *
+ * Currently it evaluates:
+ *  1. Top 20 visitors
+ *  2. Frequencies of visitors on same day
+ * 
+ *
+ */
 public class Main {
     public final static int TOP_N = 20;
 
@@ -43,8 +52,10 @@ public class Main {
         Tap visitorPairCountTap = new Hfs(new TextDelimited(true, "\t", "\""), dateJoinCheckPath);
         
         Pipe visitPipe = new Pipe("visit_pipe");
+        Fields visitCapFields = new Fields("NAMEFIRST", "NAMELAST", "APPT_START_DATE");
         Fields visitFields = new Fields("namefirst", "namelast", "appt_start_date");
-        visitPipe = new Retain(visitPipe, visitFields);
+        visitPipe = new Retain(visitPipe, visitCapFields);
+        visitPipe = new Rename(visitPipe, visitCapFields, visitFields);
 
         // count occurences of each visitor
         Fields visitorName = new Fields("namefirst", "namelast");
