@@ -89,9 +89,16 @@ public class Main {
 
         // count visitor pairings
         Fields visitorPair = new Fields("leftnamefirst", "leftnamelast", "rightnamefirst", "rightnamelast");
-        Fields count = new Fields("visitor_pair_count");
-        Pipe visitorPairCount = new Pipe("visitor_pair_count", visitorDateJoin);
-        visitorPairCount = new CountBy(visitorPairCount, visitorPair, count);
+        Fields pairCount = new Fields("visitor_pair_count");
+        Pipe vpcPipe = new Pipe("visitor_pair_count", visitorDateJoin);
+        vpcPipe = new CountBy(vpcPipe, visitorPair, pairCount);
+
+
+        // output top N
+        Fields visitorPairCount = new Fields("leftnamefirst", "leftnamelast", "rightnamefirst", "rightnamelast", "visitor_pair_count");
+        vpcPipe = new Each(vpcPipe, new Insert(identity, 1), Fields.ALL);
+        vpcPipe = new GroupBy(vpcPipe, identity, pairCount, true);
+        vpcPipe = new Every(vpcPipe, visitorPairCount, new FirstNBuffer(TOP_N), Fields.RESULTS);
         
         // connect taps and pipes into a flow
         FlowDef flowDef = FlowDef.flowDef()
