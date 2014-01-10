@@ -88,7 +88,7 @@ public class Main {
         rightVisitsPipe = new Rename(rightVisitsPipe, visitFields, rightVisit);
         visitorDateJoin = new CoGroup(leftVisitsPipe, leftDate, rightVisitsPipe, rightDate, new InnerJoin());
         // make sure pairings are unique by imposing order (and omit identity pairs)
-        ExpressionFilter orderFilter = new ExpressionFilter("leftnamefirst.concat(leftnamelast).compareTo(rightnamefirst.concat(rightnamelast)) == 1", String.class);
+        ExpressionFilter orderFilter = new ExpressionFilter("leftnamefirst.concat(leftnamelast).compareTo(rightnamefirst.concat(rightnamelast)) != 1", String.class);
         visitorDateJoin = new Each(visitorDateJoin, orderFilter);
 
         // count visitor pairings
