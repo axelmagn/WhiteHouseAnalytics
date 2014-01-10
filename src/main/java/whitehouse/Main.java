@@ -8,6 +8,7 @@ import cascading.flow.hadoop.HadoopFlowConnector;
 import cascading.operation.aggregator.Count;
 import cascading.operation.aggregator.First;
 import cascading.operation.buffer.FirstNBuffer;
+import cascading.operation.expression.ExpressionFilter;
 import cascading.operation.Insert;
 import cascading.pipe.Checkpoint;
 import cascading.pipe.CoGroup;
