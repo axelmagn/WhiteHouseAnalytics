@@ -62,16 +62,16 @@ public class Main {
         Fields visitCount = new Fields("visits_count");
         Fields date = new Fields("appt_start_date");
 
-        Pipe vcPipe = new Pipe("visitor_count");
-        vcPipe = new GroupBy(visitPipe, visitorName);
-        vcPipe = new Every(vcPipe, Fields.ALL, new Count(visitCount), Fields.ALL);
+        Pipe vcPipe = new Pipe("visitor_count", visitPipe);
+        vcPipe = new CountBy(vcPipe, visitorName, visitCount);
         
         // output top N
         Fields identity = new Fields("identity"); 
         Fields visitorcount = new Fields("namefirst", "namelast", "visits_count");
-        vcPipe = new Each(vcPipe, new Insert(identity, 1), Fields.ALL);
-        vcPipe = new GroupBy(vcPipe, identity, visitCount, true);
-        vcPipe = new Every(vcPipe, visitorcount, new FirstNBuffer(TOP_N), Fields.RESULTS);
+        Pipe topVCPipe = new Pipe("top_visitors", vcPipe);
+        topVCPipe = new Each(topVCPipe, new Insert(identity, 1), Fields.ALL);
+        topVCPipe = new GroupBy(topVCPipe, identity, visitCount, true);
+        topVCPipe = new Every(topVCPipe, visitorcount, new FirstNBuffer(TOP_N), Fields.RESULTS);
 
         // join visitors on same date
         Fields leftVisit = new Fields("leftnamefirst", "leftnamelast", "left_appt_start_date");
@@ -86,6 +86,9 @@ public class Main {
         leftVisitsPipe = new Rename(leftVisitsPipe, visitFields, leftVisit);
         rightVisitsPipe = new Rename(rightVisitsPipe, visitFields, rightVisit);
         visitorDateJoin = new CoGroup(leftVisitsPipe, leftDate, rightVisitsPipe, rightDate, new InnerJoin());
+        // make sure pairings are unique by imposing order (and omit identity pairs)
+        ExpressionFilter orderFilter = new ExpressionFilter("leftnamefirst.concat(leftnamelast).compareTo(rightnamefirst.concat(rightnamelast)) == 1", String.class);
+        visitorDateJoin = new Each(visitorDateJoin, orderFilter);
 
         // count visitor pairings
         Fields visitorPair = new Fields("leftnamefirst", "leftnamelast", "rightnamefirst", "rightnamelast");
@@ -93,18 +96,17 @@ public class Main {
         Pipe vpcPipe = new Pipe("visitor_pair_count", visitorDateJoin);
         vpcPipe = new CountBy(vpcPipe, visitorPair, pairCount);
 
-
         // output top N
         Fields visitorPairCount = new Fields("leftnamefirst", "leftnamelast", "rightnamefirst", "rightnamelast", "visitor_pair_count");
         vpcPipe = new Each(vpcPipe, new Insert(identity, 1), Fields.ALL);
         vpcPipe = new GroupBy(vpcPipe, identity, pairCount, true);
         vpcPipe = new Every(vpcPipe, visitorPairCount, new FirstNBuffer(TOP_N), Fields.RESULTS);
-        
+
         // connect taps and pipes into a flow
         FlowDef flowDef = FlowDef.flowDef()
             .setName("visit_analysis")
             .addSource(vcPipe, visitsTap)
-            .addTailSink(vcPipe, vcTap)
+            .addTailSink(topVCPipe, vcTap)
             .addTailSink(vpcPipe, vpcTap);
 
         // write a DOT file and run the flow
