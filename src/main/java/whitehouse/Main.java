@@ -49,7 +49,7 @@ public class Main {
         // create source and sink taps
         Tap visitsTap = new Hfs( new TextDelimited(true, ",", "\""), visitsPath);
         Tap vcTap = new Hfs(new TextDelimited(true, "\t", "\""), vcPath);
-        Tap visitorPairCountTap = new Hfs(new TextDelimited(true, "\t", "\""), dateJoinCheckPath);
+        Tap vpcTap = new Hfs(new TextDelimited(true, "\t", "\""), dateJoinCheckPath);
         
         Pipe visitPipe = new Pipe("visit_pipe");
         Fields visitCapFields = new Fields("NAMEFIRST", "NAMELAST", "APPT_START_DATE");
@@ -105,7 +105,7 @@ public class Main {
             .setName("visit_analysis")
             .addSource(vcPipe, visitsTap)
             .addTailSink(vcPipe, vcTap)
-            .addTailSink(visitorPairCount, visitorPairCountTap);
+            .addTailSink(vpcPipe, vpcTap);
 
         // write a DOT file and run the flow
         Flow vcFlow = flowConnector.connect(flowDef);
